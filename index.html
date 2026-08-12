@@ -1,0 +1,1557 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="WMS RF">
+<meta name="theme-color" content="#060810">
+<title>M-INTEL WMS RF</title>
+<link rel="manifest" href="#" id="manifest-link">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+<style>
+*,::before,::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#060810;color:#eef1f8;overflow:hidden;user-select:none}
+:root{
+  --bg:#060810;--bg2:#0a0d14;--bg3:#141929;--bg4:#1a2035;
+  --rim:rgba(255,255,255,.07);--rim2:rgba(255,255,255,.13);
+  --a:#4f8ef7;--a2:#7ab2ff;--g:#11c98a;--g2:#3de0a5;
+  --w:#f5a623;--w2:#ffc85a;--r:#e84040;--r2:#ff7070;
+  --p:#8b5cf6;--t:#0bb8c8;--t2:#3dd6e8;
+  --txt:#eef1f8;--txt2:#b0bdd6;--txt3:#6b7a96;--txt4:#3d4a60;
+  --safe-top:env(safe-area-inset-top,0px);
+  --safe-bot:env(safe-area-inset-bottom,0px);
+}
+
+/* ─── LAYOUT ─── */
+#app{display:flex;flex-direction:column;height:100vh;height:100dvh}
+#topbar{
+  padding:calc(var(--safe-top) + 10px) 16px 10px;
+  background:rgba(10,13,20,.97);
+  border-bottom:1px solid var(--rim);
+  display:flex;align-items:center;gap:10px;
+  flex-shrink:0;backdrop-filter:blur(20px);
+  position:relative;z-index:10
+}
+#topbar::after{content:'';position:absolute;bottom:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(79,142,247,.4),transparent)}
+.tb-logo{display:flex;align-items:center;gap:8px;flex:1}
+.tb-mark{width:32px;height:32px;border-radius:8px;background:linear-gradient(135deg,var(--a),var(--p));display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:900;color:#fff;flex-shrink:0}
+.tb-title{font-size:15px;font-weight:800;color:var(--txt);letter-spacing:-.02em}
+.tb-title span{color:var(--a2)}
+.tb-user{display:flex;align-items:center;gap:6px;background:rgba(255,255,255,.05);border:1px solid var(--rim);border-radius:8px;padding:5px 10px;cursor:pointer}
+.tb-av{width:24px;height:24px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;color:#fff;flex-shrink:0}
+.tb-un{font-size:11px;font-weight:600;color:var(--txt2);max-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tb-badge{display:inline-flex;align-items:center;padding:2px 6px;border-radius:10px;font-size:9px;font-weight:700;flex-shrink:0}
+.live-dot{width:6px;height:6px;border-radius:50%;background:var(--g);box-shadow:0 0 6px var(--g);animation:pulse 2s infinite;flex-shrink:0}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(.85)}}
+
+/* CONTENT */
+#content{flex:1;overflow:hidden;position:relative}
+.screen{position:absolute;inset:0;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:14px 14px calc(var(--safe-bot) + 80px);display:none}
+.screen.active{display:block}
+
+/* BOTTOM NAV */
+#botnav{
+  height:calc(56px + var(--safe-bot));
+  padding-bottom:var(--safe-bot);
+  background:rgba(10,13,20,.97);
+  border-top:1px solid var(--rim);
+  display:flex;align-items:stretch;
+  flex-shrink:0;backdrop-filter:blur(20px);
+  position:relative;z-index:10
+}
+.bn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer;color:var(--txt4);transition:.12s;-webkit-tap-highlight-color:transparent;position:relative;padding:6px 2px}
+.bn.on{color:var(--a2)}
+.bn.on::before{content:'';position:absolute;top:0;left:15%;right:15%;height:2px;background:var(--a);border-radius:0 0 2px 2px}
+.bn-ico{font-size:20px;line-height:1}
+.bn-lbl{font-size:9px;font-weight:600;letter-spacing:.02em;text-transform:uppercase}
+.bn-badge{position:absolute;top:4px;right:calc(50% - 18px);background:var(--r);color:#fff;font-size:8px;font-weight:700;padding:1px 4px;border-radius:8px;min-width:14px;text-align:center;display:none}
+
+/* ─── CARDS ─── */
+.card{background:var(--bg3);border:1px solid var(--rim);border-radius:14px;overflow:hidden;margin-bottom:12px}
+.card-hd{display:flex;align-items:center;justify-content:space-between;padding:12px 15px;border-bottom:1px solid var(--rim)}
+.card-title{font-size:13px;font-weight:700;color:var(--txt2)}
+.cb{padding:14px 15px}
+.badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:12px;font-size:10.5px;font-weight:600}
+.badge.ok{background:rgba(17,201,138,.12);color:var(--g2);border:1px solid rgba(17,201,138,.2)}
+.badge.warn{background:rgba(245,166,35,.1);color:var(--w2);border:1px solid rgba(245,166,35,.2)}
+.badge.err{background:rgba(232,64,64,.1);color:var(--r2);border:1px solid rgba(232,64,64,.2)}
+.badge.info{background:rgba(79,142,247,.1);color:var(--a2);border:1px solid rgba(79,142,247,.18)}
+.badge.gray{background:rgba(255,255,255,.05);color:var(--txt3);border:1px solid var(--rim)}
+.badge.purple{background:rgba(139,92,246,.1);color:#b08aff;border:1px solid rgba(139,92,246,.2)}
+.badge.teal{background:rgba(11,184,200,.1);color:var(--t2);border:1px solid rgba(11,184,200,.18)}
+
+/* ─── KPI GRID ─── */
+.kgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+.kpi{background:var(--bg3);border:1px solid var(--rim);border-radius:13px;padding:14px;position:relative;overflow:hidden}
+.kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--ka,var(--a)),var(--kb,var(--a2)))}
+.kl{font-size:9.5px;font-weight:700;color:var(--txt4);text-transform:uppercase;letter-spacing:.09em;margin-bottom:6px}
+.kv{font-size:28px;font-weight:800;color:var(--txt);line-height:1;font-variant-numeric:tabular-nums}
+
+/* ─── BOTONES ─── */
+.btn{display:flex;align-items:center;justify-content:center;gap:8px;padding:13px 16px;border-radius:12px;font-size:14px;font-weight:700;cursor:pointer;border:none;transition:.12s;font-family:inherit;width:100%;margin-bottom:8px;min-height:52px}
+.btn-primary{background:linear-gradient(135deg,var(--a),var(--p));color:#fff;box-shadow:0 4px 18px rgba(79,142,247,.35)}
+.btn-primary:active{transform:scale(.97);box-shadow:none}
+.btn-success{background:linear-gradient(135deg,var(--g),#0a9f6e);color:#fff;box-shadow:0 4px 16px rgba(17,201,138,.3)}
+.btn-success:active{transform:scale(.97)}
+.btn-warning{background:linear-gradient(135deg,var(--w),#d4870a);color:#fff;box-shadow:0 4px 14px rgba(245,166,35,.3)}
+.btn-danger{background:linear-gradient(135deg,var(--r),#c0392b);color:#fff;box-shadow:0 4px 14px rgba(232,64,64,.3)}
+.btn-ghost{background:rgba(255,255,255,.05);color:var(--txt2);border:1px solid var(--rim2)}
+.btn-ghost:active{background:rgba(255,255,255,.1)}
+.btn-sm{padding:9px 14px;font-size:12.5px;border-radius:9px;min-height:38px;margin-bottom:0;width:auto}
+
+/* ─── SCANNER ─── */
+.scanner-wrap{position:relative;border-radius:14px;overflow:hidden;background:#000;margin-bottom:14px}
+.scanner-wrap video{width:100%;display:block;max-height:240px;object-fit:cover}
+.scanner-overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none}
+.scan-frame{width:200px;height:120px;border:2px solid var(--a);border-radius:8px;position:relative;box-shadow:0 0 0 9999px rgba(0,0,0,.5)}
+.scan-frame::before,.scan-frame::after{content:'';position:absolute;width:20px;height:20px;border-color:var(--a2);border-style:solid}
+.scan-frame::before{top:-2px;left:-2px;border-width:3px 0 0 3px;border-radius:4px 0 0 0}
+.scan-frame::after{bottom:-2px;right:-2px;border-width:0 3px 3px 0;border-radius:0 0 4px 0}
+.scan-line{position:absolute;left:4px;right:4px;height:2px;background:linear-gradient(90deg,transparent,var(--a2),transparent);animation:scanline 2s ease-in-out infinite}
+@keyframes scanline{0%,100%{top:10px;opacity:0}10%,90%{opacity:1}50%{top:calc(100% - 12px)}}
+.scan-result{background:rgba(17,201,138,.1);border:1px solid rgba(17,201,138,.3);border-radius:10px;padding:12px;margin-bottom:10px}
+.scan-result.err{background:rgba(232,64,64,.08);border-color:rgba(232,64,64,.2)}
+
+/* ─── INPUT FIELD ─── */
+.field{margin-bottom:12px}
+.field label{display:block;font-size:10px;font-weight:700;color:var(--txt4);text-transform:uppercase;letter-spacing:.1em;margin-bottom:6px}
+.field input,.field select,.field textarea{
+  width:100%;background:rgba(255,255,255,.06);border:1.5px solid var(--rim2);border-radius:10px;
+  color:var(--txt);padding:13px 14px;font-size:15px;font-family:inherit;outline:none;
+  -webkit-appearance:none;appearance:none;transition:.12s
+}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--a);background:rgba(79,142,247,.06);box-shadow:0 0 0 3px rgba(79,142,247,.12)}
+.field input.big{font-size:28px;font-weight:800;text-align:center;padding:18px;letter-spacing:.05em;font-family:monospace;color:var(--a2)}
+.field select option{background:var(--bg3)}
+
+/* ─── STEPPER ─── */
+.stepper{display:flex;align-items:center;gap:0;border:1.5px solid var(--rim2);border-radius:12px;overflow:hidden;height:52px;margin-bottom:12px}
+.step-btn{width:52px;height:100%;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.06);cursor:pointer;font-size:22px;font-weight:300;color:var(--a2);flex-shrink:0;transition:.1s}
+.step-btn:active{background:rgba(79,142,247,.15)}
+.step-val{flex:1;text-align:center;font-size:28px;font-weight:800;color:var(--txt);font-variant-numeric:tabular-nums;background:none;border:none;outline:none;font-family:monospace;width:100%;color:var(--a2)}
+
+/* ─── LIST ITEM ─── */
+.list-item{display:flex;align-items:center;gap:12px;padding:13px 15px;background:var(--bg3);border:1px solid var(--rim);border-radius:12px;margin-bottom:8px;cursor:pointer;transition:.12s;-webkit-tap-highlight-color:transparent}
+.list-item:active{background:rgba(79,142,247,.08);border-color:rgba(79,142,247,.3)}
+.list-ico{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+.list-body{flex:1;min-width:0}
+.list-title{font-size:14px;font-weight:700;color:var(--txt2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.list-sub{font-size:11.5px;color:var(--txt4);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.list-right{text-align:right;flex-shrink:0}
+
+/* ─── SEPARADOR ─── */
+.sep{font-size:9.5px;font-weight:700;color:var(--txt4);text-transform:uppercase;letter-spacing:.1em;padding:8px 0 6px;margin-bottom:2px}
+.divider{height:1px;background:var(--rim);margin:12px 0}
+
+/* ─── ALERT ─── */
+.al{display:flex;align-items:flex-start;gap:9px;padding:11px 13px;border-radius:10px;margin-bottom:12px;font-size:13px;line-height:1.5;border-left:3px solid}
+.al.info{background:rgba(79,142,247,.07);border-color:var(--a);color:var(--a2)}
+.al.ok{background:rgba(17,201,138,.07);border-color:var(--g);color:var(--g2)}
+.al.warn{background:rgba(245,166,35,.07);border-color:var(--w);color:var(--w2)}
+.al.err{background:rgba(232,64,64,.07);border-color:var(--r);color:var(--r2)}
+
+/* ─── MODAL ─── */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:200;display:flex;align-items:flex-end;justify-content:center;backdrop-filter:blur(6px);opacity:0;pointer-events:none;transition:.2s}
+.overlay.on{opacity:1;pointer-events:all}
+.sheet{background:var(--bg3);border-radius:20px 20px 0 0;padding:20px 18px calc(var(--safe-bot) + 24px);width:100%;max-height:90dvh;overflow-y:auto;transform:translateY(100%);transition:.25s cubic-bezier(.34,1.56,.64,1)}
+.overlay.on .sheet{transform:translateY(0)}
+.sheet-handle{width:36px;height:4px;border-radius:2px;background:var(--txt4);margin:0 auto 18px}
+.sheet-title{font-size:18px;font-weight:800;color:var(--txt);margin-bottom:4px;letter-spacing:-.02em}
+.sheet-sub{font-size:12.5px;color:var(--txt4);margin-bottom:18px}
+
+/* ─── TOAST ─── */
+#toast{position:fixed;bottom:calc(70px + var(--safe-bot));left:50%;transform:translateX(-50%) translateY(20px);background:var(--bg4);border:1px solid var(--rim2);border-radius:14px;padding:13px 20px;font-size:14px;font-weight:600;color:var(--txt);box-shadow:0 20px 60px rgba(0,0,0,.7);z-index:999;opacity:0;transition:.22s cubic-bezier(.34,1.56,.64,1);white-space:nowrap;max-width:calc(100vw - 32px);display:flex;align-items:center;gap:8px}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+#toast.ok{border-left:3px solid var(--g)}#toast.warn{border-left:3px solid var(--w)}#toast.err{border-left:3px solid var(--r)}
+
+/* SETUP */
+#setup{position:fixed;inset:0;z-index:500;display:flex;align-items:center;justify-content:center;padding:20px;background:var(--bg)}
+#setup.off{display:none}
+.setup-card{width:100%;max-width:380px;background:var(--bg3);border:1px solid var(--rim2);border-radius:22px;padding:28px 24px}
+.setup-logo{display:flex;align-items:center;gap:12px;margin-bottom:24px}
+.setup-mark{width:48px;height:48px;border-radius:13px;background:linear-gradient(135deg,var(--a),var(--p));display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:900;color:#fff}
+.setup-brand{font-size:20px;font-weight:800;color:var(--txt)}
+.setup-brand span{color:var(--a2)}
+
+/* LOGIN */
+#login-screen{position:fixed;inset:0;z-index:400;display:flex;align-items:center;justify-content:center;padding:20px;background:var(--bg)}
+#login-screen.off{display:none}
+.login-card{width:100%;max-width:380px;background:var(--bg3);border:1px solid var(--rim2);border-radius:22px;padding:28px 24px}
+
+/* SCAN INDICATOR */
+.scan-status{display:flex;align-items:center;gap:8px;padding:10px 14px;border-radius:10px;background:rgba(255,255,255,.04);border:1px solid var(--rim);margin-bottom:12px;font-size:13px;color:var(--txt3)}
+.scan-ico{font-size:20px}
+
+/* PROGRESS BAR */
+.prog{height:4px;background:rgba(255,255,255,.05);border-radius:10px;overflow:hidden;margin:8px 0}
+.pf{height:100%;border-radius:10px;transition:.3s}
+.pf.a{background:linear-gradient(90deg,var(--a),var(--a2))}
+.pf.g{background:var(--g)}.pf.w{background:var(--w)}.pf.r{background:var(--r)}
+
+/* PICKING TASK CARD */
+.pick-card{background:linear-gradient(135deg,rgba(79,142,247,.08),rgba(139,92,246,.05));border:1px solid rgba(79,142,247,.2);border-radius:16px;padding:18px;margin-bottom:14px;position:relative;overflow:hidden}
+.pick-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--a),var(--p))}
+.pick-loc{font-size:36px;font-weight:900;font-family:monospace;color:var(--a2);letter-spacing:.06em;margin:8px 0}
+.pick-sku{font-size:14px;color:var(--txt2);font-weight:600}
+.pick-qty{font-size:48px;font-weight:900;color:var(--txt);font-variant-numeric:tabular-nums;line-height:1;margin:8px 0}
+.pick-desc{font-size:12px;color:var(--txt4)}
+</style>
+</head>
+<body>
+
+<!-- TOAST -->
+<div id="toast"><span id="t-ico">ℹ</span><span id="t-msg"></span></div>
+
+<!-- SETUP SUPABASE -->
+<div id="setup">
+ <div class="setup-card">
+  <div class="setup-logo">
+   <div class="setup-mark">M</div>
+   <div><div class="setup-brand">M-INTEL <span>RF</span></div><div style="font-size:10px;color:var(--txt4);letter-spacing:.1em;text-transform:uppercase">WMS Mobile</div></div>
+  </div>
+  <div style="font-size:13px;color:var(--txt4);margin-bottom:20px;line-height:1.6">Ingresa las credenciales de tu proyecto Supabase. Son las mismas del sistema web.</div>
+  <div class="field"><label>Project URL</label><input id="s-url" placeholder="https://xxxxx.supabase.co" inputmode="url" autocomplete="off" spellcheck="false"></div>
+  <div class="field"><label>Anon Public Key</label><input id="s-key" placeholder="eyJhbGci..." type="password" autocomplete="off"></div>
+  <div id="setup-err" style="color:var(--r2);font-size:12.5px;margin-bottom:10px;display:none"></div>
+  <button class="btn btn-primary" onclick="setupConnect()">Conectar →</button>
+ </div>
+</div>
+
+<!-- LOGIN USUARIO -->
+<div id="login-screen" class="off">
+ <div class="login-card">
+  <div style="text-align:center;margin-bottom:20px">
+   <div style="font-size:28px;margin-bottom:8px">👷</div>
+   <div style="font-size:19px;font-weight:800;color:var(--txt)">Iniciar sesión</div>
+   <div style="font-size:12px;color:var(--txt4);margin-top:4px">Selecciona tu usuario de operador</div>
+  </div>
+  <div id="login-users" style="display:flex;flex-direction:column;gap:8px;max-height:260px;overflow-y:auto;margin-bottom:14px"></div>
+  <div class="field"><label>Contraseña</label><input type="password" id="login-pass" placeholder="Contraseña" onkeydown="if(event.key==='Enter')loginConfirm()"></div>
+  <div id="login-err" style="color:var(--r2);font-size:12px;margin-bottom:10px;display:none">Contraseña incorrecta</div>
+  <button class="btn btn-primary" onclick="loginConfirm()">✓ Entrar</button>
+  <button class="btn btn-ghost" onclick="resetConn()" style="margin-top:6px">← Cambiar conexión</button>
+ </div>
+</div>
+
+<!-- APP -->
+<div id="app" style="display:none">
+ <div id="topbar">
+  <div class="tb-logo">
+   <div class="tb-mark">M</div>
+   <div>
+    <div class="tb-title">M-INTEL <span>RF</span></div>
+   </div>
+   <div class="live-dot" style="margin-left:6px" id="live-dot"></div>
+   <span id="wh-lbl" style="font-size:11px;color:var(--txt4);margin-left:4px"></span>
+  </div>
+  <div class="tb-user" onclick="showLogout()">
+   <div class="tb-av" id="user-av"></div>
+   <div class="tb-un" id="user-name">—</div>
+  </div>
+ </div>
+
+ <div id="content">
+
+  <!-- ─── HOME ─── -->
+  <div class="screen active" id="s-home">
+   <div style="padding:4px 0 12px;display:flex;align-items:center;justify-content:space-between">
+    <div>
+     <div style="font-size:20px;font-weight:800;color:var(--txt)">Operaciones</div>
+     <div style="font-size:12px;color:var(--txt4)" id="home-fecha"></div>
+    </div>
+    <div class="badge ok" id="home-wh-badge"></div>
+   </div>
+   <div class="kgrid">
+    <div class="kpi" style="--ka:var(--a);--kb:var(--a2)"><div class="kl">Pedidos entrada</div><div class="kv" id="hk-ent">—</div></div>
+    <div class="kpi" style="--ka:var(--w);--kb:var(--w2)"><div class="kl">Pedidos salida</div><div class="kv" id="hk-sal">—</div></div>
+    <div class="kpi" style="--ka:var(--g);--kb:var(--g2)"><div class="kl">Carros abiertos</div><div class="kv" id="hk-carr">—</div></div>
+    <div class="kpi" style="--ka:var(--p);--kb:#b08aff"><div class="kl">Tareas picking</div><div class="kv" id="hk-pick">—</div></div>
+   </div>
+   <div class="sep">Acciones rápidas</div>
+   <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+    <button class="btn btn-primary" onclick="goScreen('s-entrada')" style="flex-direction:column;gap:4px;padding:16px;margin:0;border-radius:14px"><span style="font-size:28px">📥</span><span>Entrada</span></button>
+    <button class="btn btn-success" onclick="goScreen('s-salida')" style="flex-direction:column;gap:4px;padding:16px;margin:0;border-radius:14px"><span style="font-size:28px">📤</span><span>Salida</span></button>
+    <button class="btn btn-warning" onclick="goScreen('s-picking')" style="flex-direction:column;gap:4px;padding:16px;margin:0;border-radius:14px"><span style="font-size:28px">🎯</span><span>Picking</span></button>
+    <button class="btn btn-ghost" onclick="goScreen('s-reubicacion')" style="flex-direction:column;gap:4px;padding:16px;margin:0;border-radius:14px;border-color:rgba(11,184,200,.3);color:var(--t2)"><span style="font-size:28px">🔄</span><span>Reubicación</span></button>
+    <button class="btn btn-ghost" onclick="goScreen('s-ajuste')" style="flex-direction:column;gap:4px;padding:16px;margin:0;border-radius:14px"><span style="font-size:28px">⚖️</span><span>Ajuste Stock</span></button>
+    <button class="btn btn-ghost" onclick="goScreen('s-carros')" style="flex-direction:column;gap:4px;padding:16px;margin:0;border-radius:14px;border-color:rgba(245,166,35,.3);color:var(--w2)"><span style="font-size:28px">🚗</span><span>Carros</span></button>
+   </div>
+  </div>
+
+  <!-- ─── ENTRADA ─── -->
+  <div class="screen" id="s-entrada">
+   <div class="sep" style="display:flex;align-items:center;justify-content:space-between"><span>📥 Recepción de Mercancía</span><button class="btn btn-ghost btn-sm" onclick="goScreen('s-home')">← Volver</button></div>
+   <div class="al info">Selecciona un pedido de entrada liberado y escanea los artículos recibidos.</div>
+   <div class="field"><label>Pedido de entrada</label>
+    <select id="ent-pedido" onchange="loadPedidoEntrada()"><option value="">— Seleccionar pedido —</option></select>
+   </div>
+   <div id="ent-pedido-info" style="display:none">
+    <div class="al ok" id="ent-info-banner"></div>
+    <div class="sep">Líneas del pedido</div>
+    <div id="ent-lineas"></div>
+   </div>
+   <div id="ent-scan-wrap" style="display:none">
+    <div class="sep">Escanear artículo recibido</div>
+    <div class="scanner-wrap" id="ent-scanner-wrap">
+     <video id="ent-video" playsinline autoplay muted></video>
+     <div class="scanner-overlay"><div class="scan-frame"><div class="scan-line"></div></div></div>
+    </div>
+    <div class="scan-status"><span class="scan-ico">📷</span><span id="ent-scan-status">Apunta al código de barras o QR</span></div>
+    <div class="field"><label>O ingresa SKU manualmente</label><input id="ent-sku-manual" placeholder="SKU o código" class="big" autocomplete="off" inputmode="text" oninput="buscarSkuEntrada(this.value)" onkeydown="if(event.key==='Enter'){event.preventDefault();buscarSkuEntrada(this.value);}"></div>
+    <div id="ent-sku-result" style="display:none" class="scan-result">
+     <div style="font-size:12px;color:var(--g2);font-weight:700;margin-bottom:4px">✓ Artículo encontrado</div>
+     <div id="ent-sku-desc" style="font-size:15px;font-weight:700;color:var(--txt2)"></div>
+     <div id="ent-sku-info" style="font-size:12px;color:var(--txt4);margin-top:2px"></div>
+     <div class="sep">Cantidad recibida</div>
+     <div class="stepper">
+      <div class="step-btn" onclick="adjCant('ent-qty',-1)">−</div>
+      <input type="number" class="step-val" id="ent-qty" value="0" min="0" inputmode="numeric">
+      <div class="step-btn" onclick="adjCant('ent-qty',1)">+</div>
+     </div>
+     <div class="field"><label>Lote (opcional)</label><input id="ent-lote" placeholder="LOT-YYYYMMDD" inputmode="text" autocomplete="off"></div>
+     <div class="field"><label>Vencimiento (opcional)</label><input type="date" id="ent-vence"></div>
+     <div class="field"><label>Ubicación destino</label><input id="ent-ubic" placeholder="A-01-01-A" autocomplete="off"></div>
+     <button class="btn btn-success" onclick="confirmarEntrada()">✓ CONFIRMAR RECEPCIÓN</button>
+     <button class="btn btn-ghost" onclick="cancelarScanEntrada()">Cancelar</button>
+    </div>
+    <div id="ent-lineas-conf" style="margin-top:12px"></div>
+   </div>
+  </div>
+
+  <!-- ─── SALIDA / PICKING ─── -->
+  <div class="screen" id="s-salida">
+   <div class="sep" style="display:flex;align-items:center;justify-content:space-between"><span>📤 Pedidos de Salida</span><button class="btn btn-ghost btn-sm" onclick="goScreen('s-home')">← Volver</button></div>
+   <div id="salida-list"></div>
+  </div>
+
+  <!-- ─── PICKING RF ─── -->
+  <div class="screen" id="s-picking">
+   <div class="sep" style="display:flex;align-items:center;justify-content:space-between"><span>🎯 Picking RF</span><button class="btn btn-ghost btn-sm" onclick="goScreen('s-home')">← Volver</button></div>
+   <div class="field"><label>Pedido / Wave</label>
+    <select id="pick-pedido" onchange="loadPicking()"><option value="">— Seleccionar —</option></select>
+   </div>
+   <div id="pick-task-wrap" style="display:none">
+    <div class="pick-card">
+     <div style="font-size:10px;color:var(--txt4);font-weight:700;text-transform:uppercase;letter-spacing:.1em;margin-bottom:4px">Ir a ubicación</div>
+     <div class="pick-loc" id="pk-loc">—</div>
+     <div class="pick-sku" id="pk-sku">—</div>
+     <div class="pick-desc" id="pk-desc"></div>
+     <div style="font-size:11px;color:var(--txt4);margin-top:6px">Cantidad solicitada</div>
+     <div class="pick-qty" id="pk-qty">0</div>
+    </div>
+    <div class="sep">Cantidad confirmada</div>
+    <div class="stepper">
+     <div class="step-btn" onclick="adjCant('pk-conf',-1)">−</div>
+     <input type="number" class="step-val" id="pk-conf" value="0" min="0" inputmode="numeric">
+     <div class="step-btn" onclick="adjCant('pk-conf',1)">+</div>
+    </div>
+    <div style="display:flex;gap:8px">
+     <button class="btn btn-success" onclick="confirmarPicking()" style="flex:2">✓ CONFIRMAR</button>
+     <button class="btn btn-ghost" onclick="omitirPicking()" style="flex:1;margin:0;font-size:12.5px">Omitir →</button>
+    </div>
+    <div class="sep" style="margin-top:14px">Progreso</div>
+    <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--txt4);margin-bottom:4px"><span id="pk-prog-lbl">0 / 0 líneas</span><span id="pk-prog-pct" style="color:var(--a2)">0%</span></div>
+    <div class="prog"><div class="pf a" id="pk-prog-bar" style="width:0%"></div></div>
+    <div id="pk-lines-done" style="margin-top:12px"></div>
+   </div>
+  </div>
+
+  <!-- ─── REUBICACIÓN ─── -->
+  <div class="screen" id="s-reubicacion">
+   <div class="sep" style="display:flex;align-items:center;justify-content:space-between"><span>🔄 Reubicación</span><button class="btn btn-ghost btn-sm" onclick="goScreen('s-home')">← Volver</button></div>
+   <div class="al info">Escanea el artículo a reubicar, luego la ubicación origen y la ubicación destino.</div>
+   <div id="reub-pasos">
+    <!-- PASO 1: SKU -->
+    <div id="reub-p1">
+     <div class="sep">Paso 1 — Artículo a reubicar</div>
+     <div class="scanner-wrap" id="reub-scanner-wrap">
+      <video id="reub-video" playsinline autoplay muted></video>
+      <div class="scanner-overlay"><div class="scan-frame"><div class="scan-line"></div></div></div>
+     </div>
+     <div class="field"><label>SKU del artículo</label><input id="reub-sku" placeholder="Escanea o ingresa SKU" class="big" autocomplete="off" oninput="buscarSkuReubic(this.value)" onkeydown="if(event.key==='Enter'){event.preventDefault();buscarSkuReubic(this.value);}"></div>
+     <div id="reub-sku-result" style="display:none" class="scan-result"></div>
+    </div>
+    <!-- PASO 2: Origen y Destino -->
+    <div id="reub-p2" style="display:none">
+     <div class="al ok" id="reub-art-banner"></div>
+     <div class="field"><label>Cantidad a reubicar</label>
+      <div class="stepper"><div class="step-btn" onclick="adjCant('reub-qty',-1)">−</div><input type="number" class="step-val" id="reub-qty" value="1" min="1" inputmode="numeric"><div class="step-btn" onclick="adjCant('reub-qty',1)">+</div></div>
+     </div>
+     <div class="field"><label>Ubicación origen</label><input id="reub-ori" placeholder="A-01-01-A" class="big" autocomplete="off"></div>
+     <div class="field"><label>Ubicación destino</label><input id="reub-dest" placeholder="B-02-01-A" class="big" autocomplete="off"></div>
+     <div class="field"><label>Motivo (opcional)</label><input id="reub-motivo" placeholder="Reorganización, picking, etc."></div>
+     <button class="btn btn-warning" onclick="confirmarReubicacion()">🔄 CONFIRMAR REUBICACIÓN</button>
+     <button class="btn btn-ghost" onclick="resetReubicacion()">Reiniciar</button>
+    </div>
+   </div>
+  </div>
+
+  <!-- ─── AJUSTE STOCK ─── -->
+  <div class="screen" id="s-ajuste">
+   <div class="sep" style="display:flex;align-items:center;justify-content:space-between"><span>⚖️ Ajuste de Inventario</span><button class="btn btn-ghost btn-sm" onclick="goScreen('s-home')">← Volver</button></div>
+   <div class="al warn">⚠ Los ajustes quedan registrados en el log de movimientos.</div>
+   <div class="field"><label>SKU del artículo</label><input id="aj-sku" placeholder="Escanea o ingresa SKU" class="big" autocomplete="off" oninput="buscarSkuAjuste(this.value)" onkeydown="if(event.key==='Enter'){event.preventDefault();buscarSkuAjuste(this.value);}"></div>
+   <div id="aj-result" style="display:none">
+    <div class="scan-result" id="aj-info"></div>
+    <div class="field"><label>Tipo de ajuste</label>
+     <select id="aj-tipo">
+      <option value="ENTRADA">+ Entrada de inventario</option>
+      <option value="SALIDA">- Salida de inventario</option>
+      <option value="CORRECCION">= Corrección (cantidad exacta)</option>
+      <option value="DANADO">✕ Artículo dañado</option>
+      <option value="PERDIDA">✕ Pérdida / merma</option>
+     </select>
+    </div>
+    <div class="field"><label>Cantidad</label>
+     <div class="stepper"><div class="step-btn" onclick="adjCant('aj-qty',-1)">−</div><input type="number" class="step-val" id="aj-qty" value="1" min="0" inputmode="numeric"><div class="step-btn" onclick="adjCant('aj-qty',1)">+</div></div>
+    </div>
+    <div class="field"><label>Almacén</label><select id="aj-wh"></select></div>
+    <div class="field"><label>Motivo / Referencia</label><input id="aj-motivo" placeholder="Conteo físico, deterioro, etc."></div>
+    <button class="btn btn-danger" onclick="confirmarAjuste()">⚖️ APLICAR AJUSTE</button>
+    <button class="btn btn-ghost" onclick="resetAjuste()">Cancelar</button>
+   </div>
+  </div>
+
+  <!-- ─── CARROS PENDIENTES ─── -->
+  <div class="screen" id="s-carros">
+   <div class="sep" style="display:flex;align-items:center;justify-content:space-between"><span>🚗 Carros de Entrada</span><button class="btn btn-ghost btn-sm" onclick="goScreen('s-home')">← Volver</button></div>
+   <div style="display:flex;gap:8px;margin-bottom:12px">
+    <select id="carr-filt" onchange="loadCarrosRF()" style="flex:1;padding:10px;background:rgba(255,255,255,.06);border:1.5px solid var(--rim2);border-radius:10px;color:var(--txt);font-size:14px;-webkit-appearance:none">
+     <option value="ABIERTO">Abiertos</option>
+     <option value="EN_USO">En uso</option>
+     <option value="UBICADO">Ubicados</option>
+     <option value="">Todos</option>
+    </select>
+    <button class="btn btn-ghost btn-sm" onclick="loadCarrosRF()">↻</button>
+   </div>
+   <div id="carros-list"></div>
+  </div>
+
+  <!-- ─── CONSULTA UBICACIÓN ─── -->
+  <div class="screen" id="s-ubicacion">
+   <div class="sep" style="display:flex;align-items:center;justify-content:space-between"><span>📍 Consulta de Ubicación</span><button class="btn btn-ghost btn-sm" onclick="goScreen('s-home')">← Volver</button></div>
+   <div class="scanner-wrap" id="ubic-scanner-wrap">
+    <video id="ubic-video" playsinline autoplay muted></video>
+    <div class="scanner-overlay"><div class="scan-frame"><div class="scan-line"></div></div></div>
+   </div>
+   <div class="field"><label>Código de ubicación</label><input id="ubic-q" placeholder="A-01-01-A" class="big" autocomplete="off" oninput="consultarUbicacion(this.value)" onkeydown="if(event.key==='Enter'){event.preventDefault();consultarUbicacion(this.value);}"></div>
+   <div id="ubic-result"></div>
+  </div>
+
+  <!-- ─── CONSULTA STOCK ─── -->
+  <div class="screen" id="s-stock">
+   <div class="sep" style="display:flex;align-items:center;justify-content:space-between"><span>📊 Consulta de Stock</span><button class="btn btn-ghost btn-sm" onclick="goScreen('s-home')">← Volver</button></div>
+   <div class="scanner-wrap" id="stk-scanner-wrap">
+    <video id="stk-video" playsinline autoplay muted></video>
+    <div class="scanner-overlay"><div class="scan-frame"><div class="scan-line"></div></div></div>
+   </div>
+   <div class="field"><label>SKU o código de barras</label><input id="stk-q" placeholder="Escanea o busca..." class="big" autocomplete="off" oninput="consultarStock(this.value)" onkeydown="if(event.key==='Enter'){event.preventDefault();consultarStock(this.value);}"></div>
+   <div id="stk-result"></div>
+  </div>
+
+ </div><!-- /content -->
+
+ <!-- BOTTOM NAV -->
+ <nav id="botnav">
+  <div class="bn on" id="bn-home" onclick="goScreen('s-home')"><div class="bn-ico">🏠</div><div class="bn-lbl">Inicio</div></div>
+  <div class="bn" id="bn-entrada" onclick="goScreen('s-entrada')"><div class="bn-ico">📥</div><div class="bn-lbl">Entrada</div><div class="bn-badge" id="bb-ent">0</div></div>
+  <div class="bn" id="bn-picking" onclick="goScreen('s-picking')"><div class="bn-ico">🎯</div><div class="bn-lbl">Picking</div><div class="bn-badge" id="bb-pick">0</div></div>
+  <div class="bn" id="bn-ubicacion" onclick="goScreen('s-ubicacion')"><div class="bn-ico">📍</div><div class="bn-lbl">Ubic.</div></div>
+  <div class="bn" id="bn-stock" onclick="goScreen('s-stock')"><div class="bn-ico">📊</div><div class="bn-lbl">Stock</div></div>
+ </nav>
+</div>
+
+<!-- LOGOUT SHEET -->
+<div class="overlay" id="logout-sheet" onclick="hideLogout()">
+ <div class="sheet" onclick="event.stopPropagation()">
+  <div class="sheet-handle"></div>
+  <div class="sheet-title" id="logout-nombre">—</div>
+  <div class="sheet-sub" id="logout-rol">—</div>
+  <button class="btn btn-ghost" onclick="cerrarSesionRF()">Cerrar sesión</button>
+  <button class="btn btn-ghost" onclick="hideLogout()">Cancelar</button>
+ </div>
+</div>
+
+<!-- CARRO DETAIL SHEET -->
+<div class="overlay" id="carro-detail" onclick="hideCarro()">
+ <div class="sheet" onclick="event.stopPropagation()" style="max-height:80dvh">
+  <div class="sheet-handle"></div>
+  <div class="sheet-title" id="cd-num">—</div>
+  <div class="sheet-sub" id="cd-tipo">—</div>
+  <div id="cd-zona" style="margin-bottom:10px"></div>
+  <div id="cd-lineas" style="margin-bottom:14px"></div>
+  <button class="btn btn-success" id="cd-ubic-btn" onclick="marcarUbicado()">✓ Marcar como UBICADO</button>
+  <button class="btn btn-ghost" onclick="hideCarro()">Cerrar</button>
+ </div>
+</div>
+
+<script>
+// ════════════════════════════════════════════════════════════════
+// GLOBALS
+// ════════════════════════════════════════════════════════════════
+const {createClient}=supabase;
+let db=null, sesion=null, whActivo='', wh_codigo='';
+let pickTasks=[], pickIdx=0, pickDone=[];
+let entLineasConf=[], entSkuActual=null, entPedidoId=null;
+let reubSkuActual=null;
+let carroActual=null;
+let scanners={};  // videoEl → intervalId
+
+const el=id=>document.getElementById(id);
+const v=id=>el(id)?.value||'';
+let toastTimer;
+
+function toast(msg,type='info'){
+  const t=el('toast'),ico=el('t-ico'),tm=el('t-msg');
+  const icons={info:'ℹ',ok:'✓',warn:'⚠',err:'✕'};
+  if(ico)ico.textContent=icons[type]||'ℹ';
+  if(tm)tm.textContent=msg;
+  t.className=type==='ok'?'show ok':type==='warn'||type==='w'?'show warn':type==='err'?'show err':'show';
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>t.className='',3200);
+}
+
+const fmtDate=d=>d?new Date(d).toLocaleDateString('es-PA',{day:'numeric',month:'short',year:'numeric'}):'—';
+const fmtDT=d=>d?new Date(d).toLocaleString('es-PA',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}):'—';
+
+function adjCant(id,d){
+  const inp=el(id); if(!inp) return;
+  let v=parseInt(inp.value)||0;
+  v=Math.max(0,v+d); inp.value=v;
+}
+
+// ════════════════════════════════════════════════════════════════
+// SETUP Y CONEXIÓN
+// ════════════════════════════════════════════════════════════════
+async function setupConnect(){
+  const url=v('s-url').trim(), key=v('s-key').trim();
+  if(!url||!key){showErr('setup-err','Completa los dos campos');return;}
+  try{
+    db=createClient(url,key);
+    const {error}=await db.from('almacenes').select('id').limit(1);
+    if(error) throw error;
+    localStorage.setItem('rf_url',url); localStorage.setItem('rf_key',key);
+    el('setup').classList.add('off');
+    showLoginScreen();
+  }catch(e){showErr('setup-err','Error de conexión: '+e.message);}
+}
+
+function showErr(id,msg){const e=el(id);if(e){e.textContent=msg;e.style.display='block';}}
+
+function resetConn(){localStorage.removeItem('rf_url');localStorage.removeItem('rf_key');location.reload();}
+
+async function showLoginScreen(){
+  // Cargar lista de usuarios (de localUsers si disponible, o de Supabase)
+  let users=[];
+  try{
+    // Intentar desde operadores
+    const {data}=await db.from('operadores').select('*').eq('activo',true).order('nombre');
+    users=data||[];
+    // Si no hay operadores, usar usuarios hardcoded
+    if(!users.length) users=defaultUsers();
+  }catch(e){users=defaultUsers();}
+  const wrap=el('login-users');
+  const ROL_COL={Administrador:'linear-gradient(135deg,#f5a623,#e07b00)',Supervisor:'linear-gradient(135deg,#4f8ef7,#7ab2ff)',Operador:'linear-gradient(135deg,#11c98a,#3de0a5)',Visitante:'linear-gradient(135deg,#4a5568,#6b7a96)'};
+  wrap.innerHTML=users.map((u,i)=>`
+    <div onclick="selectLoginUser(${i},this)" data-idx="${i}" data-user='${JSON.stringify({id:u.id,nombre:u.nombre,iniciales:u.iniciales||(u.nombre.split(' ').map(x=>x[0]).join('').slice(0,2)),rol:u.modulo||'Operador',wh_id:u.wh_id||''})}'
+      style="display:flex;align-items:center;gap:12px;padding:12px 14px;background:rgba(255,255,255,.04);border:1px solid var(--rim);border-radius:11px;cursor:pointer;transition:.12s">
+      <div style="width:38px;height:38px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:#fff;background:${ROL_COL[u.modulo]||'linear-gradient(135deg,var(--a),var(--p))'};flex-shrink:0">${u.iniciales||(u.nombre.split(' ').map(x=>x[0]).join('').slice(0,2))}</div>
+      <div style="flex:1"><div style="font-size:14px;font-weight:700;color:var(--txt2)">${u.nombre}</div><div style="font-size:11px;color:var(--txt4)">${u.wh_id||'Todos los WH'}</div></div>
+    </div>`).join('');
+  window._loginUsers=users;
+  window._loginSelIdx=null;
+  el('login-screen').classList.remove('off');
+}
+
+function defaultUsers(){
+  return [{id:1,nombre:'Administrador',iniciales:'AD',modulo:'Administrador',wh_id:'',activo:true},{id:2,nombre:'Operador RF',iniciales:'OR',modulo:'Operador',wh_id:'',activo:true}];
+}
+
+function selectLoginUser(idx,el2){
+  window._loginSelIdx=idx;
+  document.querySelectorAll('#login-users > div').forEach(d=>{
+    d.style.borderColor=d===el2?'var(--a)':'var(--rim)';
+    d.style.background=d===el2?'rgba(79,142,247,.1)':'rgba(255,255,255,.04)';
+  });
+  document.getElementById('login-pass').focus();
+}
+
+async function loginConfirm(){
+  const idx=window._loginSelIdx;
+  if(idx===null||idx===undefined){toast('Selecciona un usuario','warn');return;}
+  const pass=v('login-pass');
+  const u=window._loginUsers[idx];
+  if(!pass){toast('Ingresa tu contraseña','warn');return;}
+  // Validación demo: admin123 / nombre_usuario / 1234
+  const nombre=(u.nombre||'').toLowerCase().replace(/\s+/g,'');
+  if(pass!=='admin123'&&pass!==nombre&&pass!=='1234'){
+    el('login-err').style.display='block'; return;
+  }
+  sesion={id:u.id,nombre:u.nombre,iniciales:u.iniciales||(u.nombre.split(' ').map(x=>x[0]).join('').slice(0,2)),rol:u.modulo||'Operador',wh_id:u.wh_id||''};
+  localStorage.setItem('rf_sesion',JSON.stringify(sesion));
+  el('login-screen').classList.add('off');
+  initApp();
+}
+
+// ════════════════════════════════════════════════════════════════
+// INIT APP
+// ════════════════════════════════════════════════════════════════
+async function initApp(){
+  el('app').style.display='flex';
+  // UI sesión
+  el('user-av').textContent=sesion.iniciales;
+  el('user-av').style.background=sesion.rol==='Administrador'?'linear-gradient(135deg,#f5a623,#e07b00)':sesion.rol==='Supervisor'?'linear-gradient(135deg,var(--a),var(--a2))':'linear-gradient(135deg,var(--g),var(--g2))';
+  el('user-name').textContent=sesion.nombre.split(' ')[0];
+  el('home-fecha').textContent=new Date().toLocaleDateString('es-PA',{weekday:'long',day:'numeric',month:'long'});
+  // Cargar almacén
+  await detectarAlmacen();
+  // Cargar datos iniciales
+  await refreshHomeKPIs();
+  // Iniciar escáner en pantallas con cámara
+  startScanner('ent-video','ent-scan-status',handleScanEntrada);
+  startScanner('reub-video','',handleScanReubic);
+  startScanner('ubic-video','',handleScanUbic);
+  startScanner('stk-video','',handleScanStock);
+  // Realtime: escuchar cambios en pedidos y carros
+  subscribeRealtime();
+  // Pedido de entrada: cargar lista
+  await loadPedidosEntrada();
+  await loadPedidosSalida();
+  // WH badge
+  el('home-wh-badge').textContent=wh_codigo||'Sin WH';
+  el('wh-lbl').textContent=wh_codigo;
+}
+
+async function detectarAlmacen(){
+  if(!db) return;
+  const {data}=await db.from('almacenes').select('id,codigo,nombre').eq('activo',true).order('codigo').limit(1);
+  if(data?.length){whActivo=data[0].id;wh_codigo=data[0].codigo;}
+}
+
+// ════════════════════════════════════════════════════════════════
+// REALTIME SUPABASE
+// ════════════════════════════════════════════════════════════════
+function subscribeRealtime(){
+  if(!db) return;
+  const sub=(tabla,fn)=>db.channel('rf-'+tabla).on('postgres_changes',{event:'*',schema:'public',table:tabla},fn).subscribe();
+  sub('pedidos_entrada',()=>{loadPedidosEntrada();refreshHomeKPIs();});
+  sub('pedidos_salida', ()=>{loadPedidosSalida();refreshHomeKPIs();});
+  sub('carros_entrada', ()=>{loadCarrosRF();refreshHomeKPIs();});
+  sub('rf_tasks',       ()=>{if(pickTasks.length)loadPicking();});
+  sub('stock',          ()=>{}); // Para consultas live
+}
+
+// ════════════════════════════════════════════════════════════════
+// KPIs HOME
+// ════════════════════════════════════════════════════════════════
+async function refreshHomeKPIs(){
+  if(!db) return;
+  const [rEnt,rSal,rCarr,rPick]=await Promise.all([
+    db.from('pedidos_entrada').select('id',{count:'exact',head:true}).in('estado',['Liberado','En proceso']),
+    db.from('pedidos_salida').select('id',{count:'exact',head:true}).in('estado',['Liberado','En preparacion','Picking']),
+    db.from('carros_entrada').select('id',{count:'exact',head:true}).in('estado',['ABIERTO','EN_USO']),
+    db.from('rf_tasks').select('id',{count:'exact',head:true}).eq('estado','pendiente'),
+  ]);
+  const set=(id,v)=>{const e=el(id);if(e)e.textContent=v??'—';};
+  set('hk-ent',rEnt.count??0); set('hk-sal',rSal.count??0);
+  set('hk-carr',rCarr.count??0); set('hk-pick',rPick.count??0);
+  // Badges en botnav
+  updBadge('bb-ent',rEnt.count);
+  updBadge('bb-pick',rPick.count);
+  // Badge aprobaciones
+  const {count:pend}=await db.from('pedidos_entrada').select('id',{count:'exact',head:true}).eq('estado','Pendiente Aprobacion');
+  const {count:pend2}=await db.from('pedidos_salida').select('id',{count:'exact',head:true}).eq('estado','Pendiente Aprobacion');
+  // Live dot color
+  el('live-dot').style.background='var(--g)';
+}
+
+function updBadge(id,count){
+  const b=el(id); if(!b) return;
+  if(count>0){b.textContent=count>99?'99+':count;b.style.display='flex';}
+  else b.style.display='none';
+}
+
+// ════════════════════════════════════════════════════════════════
+// NAVEGACIÓN
+// ════════════════════════════════════════════════════════════════
+function goScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  const s=el(id); if(s) s.classList.add('active');
+  // botnav
+  const map={'s-home':'bn-home','s-entrada':'bn-entrada','s-picking':'bn-picking','s-ubicacion':'bn-ubicacion','s-stock':'bn-stock'};
+  document.querySelectorAll('.bn').forEach(b=>b.classList.remove('on'));
+  const bn=el(map[id]); if(bn) bn.classList.add('on');
+  // Acciones al entrar a pantallas
+  if(id==='s-carros') loadCarrosRF();
+  if(id==='s-salida') loadPedidosSalida();
+  if(id==='s-picking') loadPedidosParaPicking();
+}
+
+// ════════════════════════════════════════════════════════════════
+// ESCÁNER DE CÁMARA (jsQR)
+// ════════════════════════════════════════════════════════════════
+async function startScanner(videoId, statusId, callback){
+  const video=el(videoId); if(!video) return;
+  try{
+    const stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'},audio:false});
+    video.srcObject=stream;
+    video.play();
+    const canvas=document.createElement('canvas');
+    const ctx=canvas.getContext('2d',{willReadFrequently:true});
+    const interval=setInterval(()=>{
+      if(video.readyState!==video.HAVE_ENOUGH_DATA) return;
+      const screen=video.closest('.screen');
+      if(!screen?.classList.contains('active')){return;}
+      canvas.width=video.videoWidth; canvas.height=video.videoHeight;
+      ctx.drawImage(video,0,0);
+      const img=ctx.getImageData(0,0,canvas.width,canvas.height);
+      const code=jsQR(img.data,img.width,img.height,{inversionAttempts:'dontInvert'});
+      if(code?.data){
+        if(statusId&&el(statusId)) el(statusId).textContent='✓ Escaneado: '+code.data.slice(0,30);
+        callback(code.data);
+      }
+    },300);
+    scanners[videoId]=interval;
+  }catch(e){
+    if(statusId&&el(statusId)) el(statusId).textContent='📷 Cámara no disponible — usa entrada manual';
+    console.warn('Scanner:',e.message);
+  }
+}
+
+// ════════════════════════════════════════════════════════════════
+// ENTRADA DE MERCANCÍA
+// ════════════════════════════════════════════════════════════════
+async function loadPedidosEntrada(){
+  if(!db) return;
+  const {data}=await db.from('pedidos_entrada').select('id,numero,proveedor,estado,fecha_esperada,wh_id').in('estado',['Liberado','En proceso']).order('created_at',{ascending:false});
+  const s=el('ent-pedido'); if(!s) return;
+  const list=data||[];
+  s.innerHTML='<option value="">— Seleccionar pedido —</option>'+list.map(p=>`<option value="${p.id}">${p.numero} — ${p.proveedor||'—'} (${p.estado})</option>`).join('');
+  updBadge('bb-ent',list.length);
+}
+
+async function loadPedidoEntrada(){
+  const id=v('ent-pedido'); if(!id){el('ent-pedido-info').style.display='none';el('ent-scan-wrap').style.display='none';return;}
+  if(!db) return;
+  entPedidoId=id;
+  const {data:lineas}=await db.from('pe_lineas').select('*').eq('pedido_id',id).order('created_at');
+  const {data:ped}=await db.from('pedidos_entrada').select('*').eq('id',id).single();
+  el('ent-info-banner').textContent=`📦 ${ped?.numero} · ${ped?.proveedor||'—'} · ${lineas?.length||0} líneas`;
+  renderLineasEntrada(lineas||[]);
+  el('ent-pedido-info').style.display='block';
+  el('ent-scan-wrap').style.display='block';
+  entLineasConf=[];
+}
+
+function renderLineasEntrada(lineas){
+  const wrap=el('ent-lineas'); if(!wrap) return;
+  wrap.innerHTML=lineas.map(l=>`
+    <div class="list-item" style="cursor:default">
+      <div class="list-ico" style="background:rgba(79,142,247,.08)">📦</div>
+      <div class="list-body">
+        <div class="list-title">${l.sku}</div>
+        <div class="list-sub">${l.descripcion||'—'}</div>
+      </div>
+      <div class="list-right">
+        <div style="font-size:16px;font-weight:800;color:var(--a2)">${l.cantidad_rec||0}<span style="font-size:11px;color:var(--txt4);font-weight:400"> / ${l.cantidad_ped}</span></div>
+        <div>${l.estado==='Completado'?'<span class="badge ok">✓ OK</span>':l.cantidad_rec>0?'<span class="badge warn">Parcial</span>':'<span class="badge gray">Pend.</span>'}</div>
+      </div>
+    </div>`).join('');
+}
+
+function handleScanEntrada(codigo){
+  const inp=el('ent-sku-manual'); if(inp) inp.value=codigo;
+  buscarSkuEntrada(codigo);
+}
+
+async function buscarSkuEntrada(sku){
+  if(!sku||sku.length<2) return;
+  if(!db) return;
+  const {data}=await db.from('stock').select('*').or(`sku.ilike.%${sku}%`).limit(1);
+  const art=data?.[0];
+  if(art){
+    entSkuActual=art;
+    el('ent-sku-result').style.display='block';
+    el('ent-sku-result').className='scan-result';
+    el('ent-sku-desc').textContent=art.descripcion||art.sku;
+    el('ent-sku-info').textContent='Stock actual: '+art.disponible+' '+art.sku;
+    el('ent-qty').value=1;
+  } else {
+    // Si no está en stock, buscar en artículos
+    const {data:a}=await db.from('articulos').select('*').or(`codigo.ilike.%${sku}%,codigo_barras.ilike.%${sku}%`).limit(1);
+    if(a?.[0]){
+      entSkuActual={sku:a[0].codigo,descripcion:a[0].descripcion};
+      el('ent-sku-result').style.display='block';
+      el('ent-sku-result').className='scan-result';
+      el('ent-sku-desc').textContent=a[0].descripcion||a[0].codigo;
+      el('ent-sku-info').textContent='SKU: '+a[0].codigo+' · Nuevo ingreso';
+      el('ent-qty').value=1;
+    } else {
+      el('ent-sku-result').style.display='block';
+      el('ent-sku-result').className='scan-result err';
+      el('ent-sku-desc').textContent='SKU no encontrado: '+sku;
+      el('ent-sku-info').textContent='';
+      entSkuActual=null;
+    }
+  }
+}
+
+async function confirmarEntrada(){
+  if(!entSkuActual){toast('Escanea o ingresa un SKU válido','warn');return;}
+  const qty=parseInt(v('ent-qty'))||0;
+  if(qty<=0){toast('La cantidad debe ser mayor a 0','warn');return;}
+  if(!db){toast('Sin conexión','warn');return;}
+  const wh=wh_codigo||v('aj-wh');
+  const ubic=v('ent-ubic')||null;
+  const lote=v('ent-lote')||null;
+  const vence=v('ent-vence')||null;
+  // 1. Registrar movimiento
+  await db.from('movimientos').insert([{
+    tipo:'ENTRADA_RF', referencia:entPedidoId, wh_id:wh,
+    sku:entSkuActual.sku, cantidad:qty, ubicacion:ubic,
+    notas:'Recepción RF · '+sesion.nombre+(lote?' · Lote:'+lote:'')
+  }]);
+  // 2. Upsert en stock
+  const {data:existing}=await db.from('stock').select('id,disponible').eq('sku',entSkuActual.sku).eq('wh_id',wh).maybeSingle();
+  if(existing){
+    await db.from('stock').update({disponible:(existing.disponible||0)+qty,ubicacion:ubic||existing.ubicacion,lote,vencimiento:vence,updated_at:new Date().toISOString()}).eq('id',existing.id);
+  } else {
+    await db.from('stock').insert([{sku:entSkuActual.sku,descripcion:entSkuActual.descripcion||entSkuActual.sku,wh_id:wh,disponible:qty,reservado:0,ubicacion:ubic,lote,vencimiento:vence}]);
+  }
+  // 3. Actualizar línea del pedido
+  if(entPedidoId){
+    const {data:lin}=await db.from('pe_lineas').select('id,cantidad_rec,cantidad_ped').eq('pedido_id',entPedidoId).eq('sku',entSkuActual.sku).maybeSingle();
+    if(lin){
+      const newRec=(lin.cantidad_rec||0)+qty;
+      await db.from('pe_lineas').update({cantidad_rec:newRec,estado:newRec>=lin.cantidad_ped?'Completado':'Parcial'}).eq('id',lin.id);
+    }
+  }
+  // Feedback visual
+  entLineasConf.push({sku:entSkuActual.sku,qty,ubic,lote});
+  renderLineasConfirmadas();
+  toast(entSkuActual.sku+' · '+qty+' uds recibidas ✓','ok');
+  // Reset form
+  el('ent-sku-manual').value=''; el('ent-qty').value=1;
+  el('ent-lote').value=''; el('ent-vence').value=''; el('ent-ubic').value='';
+  el('ent-sku-result').style.display='none';
+  entSkuActual=null;
+  refreshHomeKPIs();
+}
+
+function renderLineasConfirmadas(){
+  const wrap=el('ent-lineas-conf'); if(!wrap) return;
+  if(!entLineasConf.length){wrap.innerHTML='';return;}
+  wrap.innerHTML='<div class="sep">Confirmados en esta sesión</div>'+
+    entLineasConf.map(l=>`<div class="al ok" style="margin-bottom:6px">✓ <b>${l.sku}</b> · ${l.qty} uds${l.ubic?' → '+l.ubic:''}${l.lote?' · Lote: '+l.lote:''}</div>`).join('');
+}
+
+function cancelarScanEntrada(){el('ent-sku-result').style.display='none';entSkuActual=null;}
+
+// ════════════════════════════════════════════════════════════════
+// SALIDA — PEDIDOS LIBERADOS
+// ════════════════════════════════════════════════════════════════
+async function loadPedidosSalida(){
+  if(!db) return;
+  const {data}=await db.from('pedidos_salida').select('*').in('estado',['Liberado','En preparacion','Picking','Listo']).order('prioridad').order('created_at');
+  const wrap=el('salida-list'); if(!wrap) return;
+  const list=data||[];
+  if(!list.length){wrap.innerHTML='<div class="al info">No hay pedidos de salida liberados</div>';return;}
+  wrap.innerHTML=list.map(p=>`
+    <div class="list-item" onclick="iniciarSalida('${p.id}')">
+      <div class="list-ico" style="background:rgba(${p.prioridad==='Urgente'?'232,64,64':'17,201,138'},.08)">${p.prioridad==='Urgente'?'🚨':'📤'}</div>
+      <div class="list-body">
+        <div class="list-title">${p.numero}</div>
+        <div class="list-sub">${p.cliente||'—'} · ${p.wh_id}</div>
+      </div>
+      <div class="list-right">
+        <span class="badge ${p.estado==='Liberado'?'ok':p.estado==='Picking'?'warn':'info'}">${p.estado}</span>
+        <div style="font-size:10px;color:var(--txt4);margin-top:4px">${p.fecha_prometida||''}</div>
+      </div>
+    </div>`).join('');
+}
+
+async function iniciarSalida(id){
+  if(!db) return;
+  // Cambiar estado a En preparación
+  await db.from('pedidos_salida').update({estado:'En preparacion'}).eq('id',id).eq('estado','Liberado');
+  // Ir a picking con este pedido
+  const {data:lineas}=await db.from('ps_lineas').select('*').eq('pedido_id',id);
+  if(!lineas?.length){toast('Este pedido no tiene líneas','warn');return;}
+  // Cargar en picking
+  pickTasks=lineas.map(l=>({pedido_id:id,sku:l.sku,desc:l.descripcion||l.sku,qty:l.cantidad_ped||0,ubic:l.ubicacion||'—',linea_id:l.id}));
+  pickIdx=0; pickDone=[];
+  goScreen('s-picking');
+  renderPickTask();
+  toast('Picking iniciado · '+pickTasks.length+' líneas','info');
+}
+
+// ════════════════════════════════════════════════════════════════
+// PICKING RF
+// ════════════════════════════════════════════════════════════════
+async function loadPedidosParaPicking(){
+  if(!db) return;
+  const {data}=await db.from('pedidos_salida').select('id,numero,cliente,estado').in('estado',['Liberado','En preparacion','Picking']).order('created_at',{ascending:false});
+  const s=el('pick-pedido'); if(!s) return;
+  s.innerHTML='<option value="">— Seleccionar pedido —</option>'+(data||[]).map(p=>`<option value="${p.id}">${p.numero} — ${p.cliente||'—'} (${p.estado})</option>`).join('');
+}
+
+async function loadPicking(){
+  const id=v('pick-pedido'); if(!id){el('pick-task-wrap').style.display='none';return;}
+  if(!db) return;
+  const {data:lineas}=await db.from('ps_lineas').select('*').eq('pedido_id',id);
+  if(!lineas?.length){toast('Sin líneas en este pedido','warn');return;}
+  pickTasks=lineas.filter(l=>l.estado!=='Listo').map(l=>({pedido_id:id,sku:l.sku,desc:l.descripcion||l.sku,qty:l.cantidad_ped||0,ubic:l.ubicacion||'—',linea_id:l.id}));
+  pickDone=lineas.filter(l=>l.estado==='Listo');
+  pickIdx=0;
+  if(!pickTasks.length){toast('Todas las líneas completadas ✓','ok');el('pick-task-wrap').style.display='none';return;}
+  el('pick-task-wrap').style.display='block';
+  renderPickTask();
+  // Actualizar estado del pedido
+  await db.from('pedidos_salida').update({estado:'Picking'}).eq('id',id).in('estado',['Liberado','En preparacion']);
+}
+
+function renderPickTask(){
+  if(!pickTasks.length){
+    el('pick-task-wrap').style.display='none';
+    toast('¡Picking completado! ✓','ok');
+    return;
+  }
+  const t=pickTasks[pickIdx]||pickTasks[0];
+  if(!t){el('pick-task-wrap').style.display='none';return;}
+  el('pk-loc').textContent=t.ubic||'—';
+  el('pk-sku').textContent=t.sku;
+  el('pk-desc').textContent=t.desc;
+  el('pk-qty').textContent=t.qty;
+  el('pk-conf').value=t.qty; // Pre-llenar con la cantidad pedida
+  // Progreso
+  const total=pickTasks.length+pickDone.length;
+  const done=pickDone.length;
+  const pct=total>0?Math.round(done/total*100):0;
+  el('pk-prog-lbl').textContent=done+' / '+total+' líneas';
+  el('pk-prog-pct').textContent=pct+'%';
+  el('pk-prog-bar').style.width=pct+'%';
+  // Líneas completadas
+  const wrap=el('pk-lines-done');
+  if(wrap&&pickDone.length>0){
+    wrap.innerHTML='<div class="sep">Completadas</div>'+pickDone.slice(-5).map(l=>`<div class="al ok" style="margin-bottom:4px;padding:8px 10px;font-size:12px">✓ ${l.sku} · ${l.cantidad_prep||l.qty} uds</div>`).join('');
+  }
+}
+
+async function confirmarPicking(){
+  if(!pickTasks.length){toast('Sin tareas','warn');return;}
+  const t=pickTasks[pickIdx]||pickTasks[0];
+  const conf=parseInt(v('pk-conf'))||0;
+  if(conf<=0){toast('Ingresa la cantidad confirmada','warn');return;}
+  if(!db){toast('Sin conexión','warn');return;}
+  // Actualizar línea
+  if(t.linea_id){
+    await db.from('ps_lineas').update({cantidad_prep:conf,estado:'Listo'}).eq('id',t.linea_id);
+  }
+  // Registrar movimiento
+  await db.from('movimientos').insert([{tipo:'PICKING_RF',referencia:t.pedido_id,wh_id:wh_codigo,sku:t.sku,cantidad:conf,ubicacion:t.ubic,notas:'Picking RF · '+sesion.nombre}]);
+  // Actualizar stock (descontar reservado)
+  const {data:stk}=await db.from('stock').select('id,disponible,reservado').eq('sku',t.sku).eq('wh_id',wh_codigo).maybeSingle();
+  if(stk) await db.from('stock').update({disponible:Math.max(0,(stk.disponible||0)-conf)}).eq('id',stk.id);
+  t.cantidad_prep=conf;
+  pickDone.push(t);
+  pickTasks.splice(pickIdx,1);
+  if(pickIdx>=pickTasks.length) pickIdx=0;
+  toast(t.sku+' · '+conf+' uds ✓','ok');
+  // Si todas completadas, marcar pedido como Listo
+  if(!pickTasks.length&&t.pedido_id){
+    await db.from('pedidos_salida').update({estado:'Listo'}).eq('id',t.pedido_id);
+    toast('¡Pedido completo! Estado → Listo ✓','ok');
+  }
+  renderPickTask();
+  refreshHomeKPIs();
+}
+
+function omitirPicking(){
+  if(!pickTasks.length) return;
+  pickIdx=(pickIdx+1)%pickTasks.length;
+  renderPickTask();
+  toast('Omitida → siguiente','warn');
+}
+
+// ════════════════════════════════════════════════════════════════
+// REUBICACIÓN
+// ════════════════════════════════════════════════════════════════
+function handleScanReubic(codigo){
+  const inp=el('reub-sku'); if(inp) inp.value=codigo;
+  buscarSkuReubic(codigo);
+}
+
+async function buscarSkuReubic(sku){
+  if(!sku||sku.length<2) return;
+  if(!db) return;
+  const {data}=await db.from('stock').select('*').ilike('sku',`%${sku}%`).limit(1);
+  const wrap=el('reub-sku-result');
+  if(data?.[0]){
+    reubSkuActual=data[0];
+    wrap.style.display='block';
+    wrap.className='scan-result';
+    wrap.innerHTML=`<div style="font-size:12px;color:var(--g2);font-weight:700">✓ ${data[0].sku}</div><div style="font-size:14px;color:var(--txt2)">${data[0].descripcion||'—'}</div><div style="font-size:12px;color:var(--txt4)">Stock disp: ${data[0].disponible} · Ubic: ${data[0].ubicacion||'—'}</div>`;
+    el('reub-ori').value=data[0].ubicacion||'';
+    el('reub-p2').style.display='block';
+  } else {
+    wrap.style.display='block';wrap.className='scan-result err';
+    wrap.innerHTML='<div style="color:var(--r2)">✕ SKU no encontrado</div>';
+    reubSkuActual=null;
+  }
+}
+
+async function confirmarReubicacion(){
+  if(!reubSkuActual){toast('Escanea el artículo primero','warn');return;}
+  const qty=parseInt(v('reub-qty'))||1, ori=v('reub-ori'), dest=v('reub-dest');
+  if(!ori||!dest){toast('Ingresa ubicación origen y destino','warn');return;}
+  if(ori===dest){toast('Origen y destino no pueden ser iguales','warn');return;}
+  if(!db){toast('Sin conexión','warn');return;}
+  await db.from('movimientos').insert([{tipo:'REUBICACION',wh_id:wh_codigo,sku:reubSkuActual.sku,cantidad:qty,ubicacion:dest,notas:'De '+ori+' → '+dest+' · '+sesion.nombre+(v('reub-motivo')?' · '+v('reub-motivo'):'') }]);
+  // Actualizar ubicación en stock
+  await db.from('stock').update({ubicacion:dest}).eq('id',reubSkuActual.id);
+  toast(reubSkuActual.sku+' reubicado: '+ori+' → '+dest+' ✓','ok');
+  // Log ubicacion_destino
+  await db.from('ubicaciones').update({ocupada:true}).eq('codigo',dest).neq('id','00000000-0000-0000-0000-000000000000');
+  resetReubicacion();
+}
+
+function resetReubicacion(){
+  reubSkuActual=null;
+  el('reub-sku').value=''; el('reub-ori').value=''; el('reub-dest').value=''; el('reub-motivo').value=''; el('reub-qty').value=1;
+  el('reub-sku-result').style.display='none'; el('reub-p2').style.display='none';
+}
+
+// ════════════════════════════════════════════════════════════════
+// AJUSTE DE STOCK
+// ════════════════════════════════════════════════════════════════
+async function buscarSkuAjuste(sku){
+  if(!sku||sku.length<2){el('aj-result').style.display='none';return;}
+  if(!db) return;
+  const {data}=await db.from('stock').select('*').ilike('sku',`%${sku}%`).limit(1);
+  const wrap=el('aj-result'), info=el('aj-info');
+  if(data?.[0]){
+    wrap.style.display='block';
+    info.innerHTML=`<div style="font-size:13px;font-weight:700;color:var(--txt2)">${data[0].sku}</div><div style="font-size:12px;color:var(--txt4)">${data[0].descripcion||'—'}</div><div style="font-size:14px;font-weight:700;color:var(--a2);margin-top:4px">Stock actual: ${data[0].disponible||0} uds</div><div style="font-size:11px;color:var(--txt4)">Ubic: ${data[0].ubicacion||'—'} · WH: ${data[0].wh_id}</div>`;
+    // Poblar select de WH
+    const {data:whs}=await db.from('almacenes').select('id,codigo,nombre').eq('activo',true).order('codigo');
+    el('aj-wh').innerHTML=(whs||[]).map(w=>`<option value="${w.codigo}" ${w.id===whActivo?'selected':''}>${w.codigo} — ${w.nombre}</option>`).join('');
+    window._ajStkActual=data[0];
+  } else {
+    wrap.style.display='none'; window._ajStkActual=null;
+  }
+}
+
+async function confirmarAjuste(){
+  const stk=window._ajStkActual;
+  if(!stk){toast('Busca un artículo primero','warn');return;}
+  const tipo=v('aj-tipo'), qty=parseInt(v('aj-qty'))||0, wh=v('aj-wh'), motivo=v('aj-motivo')||'Ajuste RF';
+  if(qty<=0&&tipo!=='CORRECCION'){toast('Cantidad debe ser mayor a 0','warn');return;}
+  if(!db){toast('Sin conexión','warn');return;}
+  let nuevoStock=stk.disponible||0;
+  if(tipo==='ENTRADA') nuevoStock+=qty;
+  else if(tipo==='SALIDA'||tipo==='DANADO'||tipo==='PERDIDA') nuevoStock=Math.max(0,nuevoStock-qty);
+  else if(tipo==='CORRECCION') nuevoStock=qty;
+  // Actualizar stock
+  await db.from('stock').update({disponible:nuevoStock,updated_at:new Date().toISOString()}).eq('id',stk.id);
+  // Log movimiento
+  await db.from('movimientos').insert([{tipo:'AJUSTE_'+tipo,wh_id:wh,sku:stk.sku,cantidad:tipo==='CORRECCION'?nuevoStock-stk.disponible:tipo.includes('SALIDA')||tipo==='DANADO'||tipo==='PERDIDA'?-qty:qty,notas:motivo+' · '+sesion.nombre+' · Anterior: '+stk.disponible+' → Nuevo: '+nuevoStock}]);
+  toast(stk.sku+' ajustado: '+stk.disponible+' → '+nuevoStock+' ✓','ok');
+  resetAjuste();
+  refreshHomeKPIs();
+}
+
+function resetAjuste(){
+  el('aj-sku').value=''; el('aj-result').style.display='none'; el('aj-qty').value=1; el('aj-motivo').value=''; window._ajStkActual=null;
+}
+
+// ════════════════════════════════════════════════════════════════
+// CARROS PENDIENTES
+// ════════════════════════════════════════════════════════════════
+async function loadCarrosRF(){
+  if(!db) return;
+  const est=v('carr-filt')||'';
+  let q=db.from('carros_entrada').select('*').order('created_at',{ascending:false}).limit(50);
+  if(est) q=q.eq('estado',est);
+  const {data}=await q;
+  const wrap=el('carros-list'); if(!wrap) return;
+  const list=data||[];
+  if(!list.length){wrap.innerHTML='<div class="al info">No hay carros con este estado</div>';return;}
+  wrap.innerHTML=list.map(c=>`
+    <div class="list-item" onclick="verCarroRF('${c.id}')">
+      <div class="list-ico" style="background:rgba(${c.tipo==='UNICO'?'79,142,247':'245,166,35'},.08)">${c.tipo==='UNICO'?'🚗':'🚌'}</div>
+      <div class="list-body">
+        <div class="list-title">${c.numero}</div>
+        <div class="list-sub">${c.wh_id} · ${c.operador||'Sin operador'}</div>
+      </div>
+      <div class="list-right">
+        <span class="badge ${c.estado==='ABIERTO'?'info':c.estado==='EN_USO'?'warn':c.estado==='UBICADO'?'ok':'gray'}">${c.estado}</span>
+        <div style="font-size:9px;color:var(--txt4);margin-top:4px">${fmtDT(c.created_at)}</div>
+      </div>
+    </div>`).join('');
+}
+
+async function verCarroRF(id){
+  if(!db) return;
+  const carro=(await db.from('carros_entrada').select('*').eq('id',id).single()).data;
+  const {data:lineas}=await db.from('carro_lineas').select('*').eq('carro_id',id);
+  carroActual={...carro,lineas:lineas||[]};
+  el('cd-num').textContent=carro.numero;
+  el('cd-tipo').textContent=(carro.tipo==='UNICO'?'🚗 Carro Único':'🚌 Carro Múltiple')+' · '+carro.wh_id+' · '+carro.estado;
+  // Zona de entrada (del primer artículo)
+  const zonas=[...new Set((lineas||[]).map(l=>l.zona_entrada).filter(Boolean))];
+  el('cd-zona').innerHTML=zonas.length?`<div class="al info" style="margin:0 0 10px">📍 Zona de entrada: <b>${zonas.join(' · ')}</b></div>`:'';
+  el('cd-lineas').innerHTML=(lineas||[]).map(l=>`<div class="list-item" style="margin-bottom:6px;cursor:default"><div class="list-ico" style="background:rgba(79,142,247,.06)">📦</div><div class="list-body"><div class="list-title">${l.sku}</div><div class="list-sub">${l.descripcion||'—'}${l.lote?' · Lote: '+l.lote:''}</div></div><div class="list-right"><div style="font-size:18px;font-weight:800;color:var(--a2)">${l.cantidad}</div><span class="badge ${l.ubicado?'ok':'gray'}">${l.ubicado?'Ubicado':'Pend.'}</span></div></div>`).join('');
+  el('cd-ubic-btn').style.display=carro.estado==='ABIERTO'||carro.estado==='EN_USO'?'flex':'none';
+  el('carro-detail').classList.add('on');
+}
+
+async function marcarUbicado(){
+  if(!carroActual||!db) return;
+  await db.from('carros_entrada').update({estado:'UBICADO'}).eq('id',carroActual.id);
+  await db.from('movimientos').insert([{tipo:'CARRO_UBICADO',wh_id:wh_codigo,notas:'Carro '+carroActual.numero+' marcado UBICADO · '+sesion.nombre}]);
+  toast(carroActual.numero+' → UBICADO ✓','ok');
+  hideCarro();
+  loadCarrosRF();
+  refreshHomeKPIs();
+}
+
+function hideCarro(){el('carro-detail').classList.remove('on'); carroActual=null;}
+
+// ════════════════════════════════════════════════════════════════
+// CONSULTA UBICACIÓN
+// ════════════════════════════════════════════════════════════════
+function handleScanUbic(codigo){const inp=el('ubic-q'); if(inp) inp.value=codigo; consultarUbicacion(codigo);}
+
+async function consultarUbicacion(codigo){
+  if(!codigo||codigo.length<3) return;
+  if(!db) return;
+  const {data:ubic}=await db.from('ubicaciones').select('*').ilike('codigo',`%${codigo}%`).limit(5);
+  const wrap=el('ubic-result'); if(!wrap) return;
+  if(!ubic?.length){wrap.innerHTML='<div class="al err">✕ Ubicación no encontrada</div>';return;}
+  // Para cada ubicación, buscar el stock
+  const {data:stocks}=await db.from('stock').select('*').in('ubicacion',ubic.map(u=>u.codigo));
+  wrap.innerHTML=ubic.map(u=>{
+    const stk=stocks?.filter(s=>s.ubicacion===u.codigo)||[];
+    return`<div class="card" style="margin-bottom:12px">
+      <div class="card-hd"><div class="card-title">📍 ${u.codigo}</div><span class="badge ${u.ocupada?'warn':'ok'}">${u.ocupada?'Ocupada':'Libre'}</span></div>
+      <div class="cb">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px;color:var(--txt4);margin-bottom:10px">
+          <div><b>WH:</b> ${u.wh_id||'—'}</div><div><b>Zona:</b> ${u.zona||'—'}</div>
+          <div><b>Tipo:</b> ${u.tipo||'Rack'}</div><div><b>Cap:</b> ${u.capacidad_kg||'—'} kg</div>
+        </div>
+        ${stk.length?stk.map(s=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 10px;background:rgba(255,255,255,.03);border-radius:8px;margin-bottom:6px"><div><div style="font-size:13px;font-weight:700;color:var(--txt2)">${s.sku}</div><div style="font-size:11px;color:var(--txt4)">${s.descripcion||'—'}${s.lote?' · '+s.lote:''}</div></div><div style="font-size:20px;font-weight:800;color:var(--a2)">${s.disponible}</div></div>`).join(''):'<div style="text-align:center;color:var(--txt4);font-size:13px;padding:10px">Sin stock en esta ubicación</div>'}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ════════════════════════════════════════════════════════════════
+// CONSULTA STOCK
+// ════════════════════════════════════════════════════════════════
+function handleScanStock(codigo){const inp=el('stk-q'); if(inp) inp.value=codigo; consultarStock(codigo);}
+
+async function consultarStock(sku){
+  if(!sku||sku.length<2) return;
+  if(!db) return;
+  const {data}=await db.from('stock').select('*').or(`sku.ilike.%${sku}%,descripcion.ilike.%${sku}%`).order('wh_id').limit(20);
+  const wrap=el('stk-result'); if(!wrap) return;
+  if(!data?.length){wrap.innerHTML='<div class="al err">✕ Sin resultados para "'+sku+'"</div>';return;}
+  // Agrupar por SKU
+  const grouped={};
+  data.forEach(s=>{if(!grouped[s.sku])grouped[s.sku]={desc:s.descripcion,items:[]};grouped[s.sku].items.push(s);});
+  wrap.innerHTML=Object.entries(grouped).map(([sku2,g])=>`
+    <div class="card" style="margin-bottom:12px">
+      <div class="card-hd"><div class="card-title">📦 ${sku2}</div><span style="font-size:18px;font-weight:800;color:var(--a2);font-family:monospace">${g.items.reduce((a,b)=>a+(b.disponible||0),0)}</span></div>
+      <div class="cb" style="padding:10px 14px">
+        <div style="font-size:12.5px;color:var(--txt3);margin-bottom:10px">${g.desc||'—'}</div>
+        ${g.items.map(s=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 10px;background:rgba(255,255,255,.03);border-radius:8px;margin-bottom:5px">
+          <div>
+            <span class="badge info" style="font-size:10px">${s.wh_id||'—'}</span>
+            <div style="font-size:11px;color:var(--txt4);margin-top:3px">Ubic: ${s.ubicacion||'—'}${s.lote?' · '+s.lote:''}${s.vencimiento?' · Vence:'+s.vencimiento:''}</div>
+          </div>
+          <div style="text-align:right">
+            <div style="font-size:22px;font-weight:800;color:var(--a2);font-family:monospace">${s.disponible||0}</div>
+            <div style="font-size:10px;color:var(--txt4)">Res: ${s.reservado||0}</div>
+          </div>
+        </div>`).join('')}
+      </div>
+    </div>`).join('');
+}
+
+// ════════════════════════════════════════════════════════════════
+// LOGOUT
+// ════════════════════════════════════════════════════════════════
+function showLogout(){
+  el('logout-nombre').textContent=sesion?.nombre||'—';
+  el('logout-rol').textContent=sesion?.rol||'—';
+  el('logout-sheet').classList.add('on');
+}
+function hideLogout(){el('logout-sheet').classList.remove('on');}
+function cerrarSesionRF(){localStorage.removeItem('rf_sesion');location.reload();}
+
+// ════════════════════════════════════════════════════════════════
+// AUTO-RECONEXIÓN AL ARRANCAR
+// ════════════════════════════════════════════════════════════════
+window.addEventListener('load',async()=>{
+  const url=localStorage.getItem('rf_url'), key=localStorage.getItem('rf_key');
+  const sesGuard=localStorage.getItem('rf_sesion');
+  if(url&&key){
+    db=createClient(url,key);
+    el('setup').classList.add('off');
+    if(sesGuard){
+      try{sesion=JSON.parse(sesGuard);initApp();}
+      catch(e){showLoginScreen();}
+    } else {
+      showLoginScreen();
+    }
+  }
+  // Reloj en home
+  setInterval(()=>{
+    const e=el('home-fecha');
+    if(e) e.textContent=new Date().toLocaleDateString('es-PA',{weekday:'long',day:'numeric',month:'long'});
+  },60000);
+});
+
+
+// ════════════════════════════════════════════════════════════════
+// MEJORAS APK v2.0 — Relaciones correctas con BD
+// ════════════════════════════════════════════════════════════════
+
+// ── Override loadPedidosSalida con estados correctos sin tilde ──
+async function loadPedidosSalida(){
+  if(!db) return;
+  const {data}=await db.from('pedidos_salida').select('*')
+    .in('estado',['Liberado','En preparacion','Picking','Listo'])
+    .order('prioridad').order('created_at');
+  const wrap=el('salida-list'); if(!wrap) return;
+  const list=data||[];
+  if(!list.length){
+    wrap.innerHTML='<div class="al info">No hay pedidos de salida liberados</div>';
+    return;
+  }
+  wrap.innerHTML=list.map(p=>`
+    <div class="list-item" onclick="iniciarSalida('${p.id}')">
+      <div class="list-ico" style="background:rgba(${p.prioridad==='Urgente'?'232,64,64':'17,201,138'},.08)">${p.prioridad==='Urgente'?'🚨':'📤'}</div>
+      <div class="list-body">
+        <div class="list-title">${p.numero}</div>
+        <div class="list-sub">${p.cliente||'—'} · ${p.wh_id}</div>
+      </div>
+      <div class="list-right">
+        <span class="badge ${p.estado==='Liberado'?'ok':p.estado==='Picking'?'warn':'info'}">${p.estado}</span>
+        <div style="font-size:10px;color:var(--txt4);margin-top:4px">${p.fecha_prometida||''}</div>
+      </div>
+    </div>`).join('');
+}
+
+// ── Override iniciarSalida con estado correcto ──
+async function iniciarSalida(id){
+  if(!db) return;
+  await db.from('pedidos_salida').update({estado:'En preparacion'}).eq('id',id).eq('estado','Liberado');
+  const {data:lineas}=await db.from('ps_lineas').select('*').eq('pedido_id',id);
+  if(!lineas?.length){toast('Este pedido no tiene líneas','warn');return;}
+  pickTasks=lineas.map(l=>({
+    pedido_id:id,sku:l.sku,desc:l.descripcion||l.sku,
+    qty:l.cantidad_ped||0,ubic:l.ubicacion||'—',linea_id:l.id
+  }));
+  pickIdx=0; pickDone=[];
+  goScreen('s-picking');
+  renderPickTask();
+  toast('Picking iniciado · '+pickTasks.length+' líneas','info');
+}
+
+// ── Override loadPedidosParaPicking con estados correctos ──
+async function loadPedidosParaPicking(){
+  if(!db) return;
+  const {data}=await db.from('pedidos_salida').select('id,numero,cliente,estado')
+    .in('estado',['Liberado','En preparacion','Picking'])
+    .order('created_at',{ascending:false});
+  const s=el('pick-pedido'); if(!s) return;
+  s.innerHTML='<option value="">— Seleccionar pedido —</option>'+
+    (data||[]).map(p=>`<option value="${p.id}">${p.numero} — ${p.cliente||'—'} (${p.estado})</option>`).join('');
+}
+
+// ── Override loadPicking con estado correcto ──
+async function loadPicking(){
+  const id=v('pick-pedido'); if(!id){el('pick-task-wrap').style.display='none';return;}
+  if(!db) return;
+  const {data:lineas}=await db.from('ps_lineas').select('*').eq('pedido_id',id);
+  if(!lineas?.length){toast('Sin líneas en este pedido','warn');return;}
+  pickTasks=lineas.filter(l=>l.estado!=='Listo').map(l=>({
+    pedido_id:id,sku:l.sku,desc:l.descripcion||l.sku,
+    qty:l.cantidad_ped||0,ubic:l.ubicacion||'—',linea_id:l.id
+  }));
+  pickDone=lineas.filter(l=>l.estado==='Listo');
+  pickIdx=0;
+  if(!pickTasks.length){toast('Todas las líneas completadas ✓','ok');el('pick-task-wrap').style.display='none';return;}
+  el('pick-task-wrap').style.display='block';
+  renderPickTask();
+  await db.from('pedidos_salida').update({estado:'Picking'}).eq('id',id).in('estado',['Liberado','En preparacion']);
+}
+
+// ── Override confirmarPicking: marca pedido como Listo ──
+async function confirmarPicking(){
+  if(!pickTasks.length){toast('Sin tareas','warn');return;}
+  const t=pickTasks[pickIdx]||pickTasks[0];
+  const conf=parseInt(v('pk-conf'))||0;
+  if(conf<=0){toast('Ingresa la cantidad confirmada','warn');return;}
+  if(!db){toast('Sin conexión','warn');return;}
+  if(t.linea_id){
+    await db.from('ps_lineas').update({cantidad_prep:conf,estado:'Listo'}).eq('id',t.linea_id);
+  }
+  await db.from('movimientos').insert([{
+    tipo:'PICKING_RF',referencia:t.pedido_id,wh_id:wh_codigo,
+    sku:t.sku,cantidad:conf,ubicacion:t.ubic,
+    notas:'Picking RF · '+sesion.nombre,usuario:sesion.nombre
+  }]);
+  const {data:stk}=await db.from('stock').select('id,disponible,reservado')
+    .eq('sku',t.sku).eq('wh_id',wh_codigo).maybeSingle();
+  if(stk){
+    await db.from('stock').update({
+      disponible:Math.max(0,(stk.disponible||0)-conf),
+      reservado:Math.max(0,(stk.reservado||0)-conf),
+      updated_at:new Date().toISOString()
+    }).eq('id',stk.id);
+  }
+  t.cantidad_prep=conf;
+  pickDone.push(t);
+  pickTasks.splice(pickIdx,1);
+  if(pickIdx>=pickTasks.length) pickIdx=0;
+  toast(t.sku+' · '+conf+' uds ✓','ok');
+  if(!pickTasks.length&&t.pedido_id){
+    await db.from('pedidos_salida').update({estado:'Listo'}).eq('id',t.pedido_id);
+    toast('¡Pedido completo → Listo ✓','ok');
+  }
+  renderPickTask();
+  refreshHomeKPIs();
+}
+
+// ── Override subscribeRealtime con estados correctos ──
+function subscribeRealtime(){
+  if(!db) return;
+  const sub=(tabla,fn)=>db.channel('rf-'+tabla)
+    .on('postgres_changes',{event:'*',schema:'public',table:tabla},fn)
+    .subscribe();
+  sub('pedidos_entrada',()=>{loadPedidosEntrada();refreshHomeKPIs();});
+  sub('pedidos_salida', ()=>{loadPedidosSalida();refreshHomeKPIs();});
+  sub('carros_entrada', ()=>{loadCarrosRF();refreshHomeKPIs();});
+  sub('rf_tasks',       ()=>{if(pickTasks.length)loadPicking();});
+}
+
+// ── Override refreshHomeKPIs con estados correctos ──
+async function refreshHomeKPIs(){
+  if(!db) return;
+  const [rEnt,rSal,rCarr,rPick]=await Promise.all([
+    db.from('pedidos_entrada').select('id',{count:'exact',head:true})
+      .in('estado',['Liberado','En proceso']),
+    db.from('pedidos_salida').select('id',{count:'exact',head:true})
+      .in('estado',['Liberado','En preparacion','Picking']),
+    db.from('carros_entrada').select('id',{count:'exact',head:true})
+      .in('estado',['ABIERTO','EN_USO']),
+    db.from('rf_tasks').select('id',{count:'exact',head:true})
+      .eq('estado','pendiente'),
+  ]);
+  const set=(id,v)=>{const e=el(id);if(e)e.textContent=v??'—';};
+  set('hk-ent',rEnt.count??0);
+  set('hk-sal',rSal.count??0);
+  set('hk-carr',rCarr.count??0);
+  set('hk-pick',rPick.count??0);
+  updBadge('bb-ent',rEnt.count);
+  updBadge('bb-pick',rPick.count);
+  el('live-dot').style.background='var(--g)';
+}
+
+// ── Override verCarroRF: muestra zona de entrada del artículo ──
+async function verCarroRF(id){
+  if(!db) return;
+  const carro=(await db.from('carros_entrada').select('*').eq('id',id).single()).data;
+  const {data:lineas}=await db.from('carro_lineas').select('*').eq('carro_id',id);
+  // Enriquecer líneas con datos del artículo (zona_entrada, und_por_palet)
+  const skus=[...new Set((lineas||[]).map(l=>l.sku).filter(Boolean))];
+  let artMap={};
+  if(skus.length){
+    const {data:arts}=await db.from('articulos')
+      .select('codigo,zona_entrada_codigo,und_por_caja,cajas_por_palet')
+      .in('codigo',skus);
+    (arts||[]).forEach(a=>{artMap[a.codigo]=a;});
+  }
+  carroActual={...carro,lineas:lineas||[]};
+  el('cd-num').textContent=carro.numero;
+  el('cd-tipo').textContent=(carro.tipo==='UNICO'?'🚗 Carro Único':'🚌 Carro Múltiple')+' · '+carro.wh_id+' · '+carro.estado;
+  // Zonas de entrada
+  const zonas=[...new Set((lineas||[]).map(l=>artMap[l.sku]?.zona_entrada_codigo).filter(Boolean))];
+  el('cd-zona').innerHTML=zonas.length
+    ?`<div class="al info" style="margin:0 0 10px">📍 Zona de entrada: <b>${zonas.join(' · ')}</b></div>`
+    :'';
+  el('cd-lineas').innerHTML=(lineas||[]).map(l=>{
+    const art=artMap[l.sku]||{};
+    const undPalet=(art.und_por_caja||1)*(art.cajas_por_palet||1);
+    return`<div class="list-item" style="margin-bottom:6px;cursor:default">
+      <div class="list-ico" style="background:rgba(79,142,247,.06)">📦</div>
+      <div class="list-body">
+        <div class="list-title">${l.sku}</div>
+        <div class="list-sub">${l.descripcion||'—'}${l.lote?' · Lote: '+l.lote:''}</div>
+        ${art.zona_entrada_codigo?`<div style="font-size:10px;color:var(--a2);margin-top:2px">📍 ${art.zona_entrada_codigo} · ${undPalet} u/pal</div>`:''}
+      </div>
+      <div class="list-right">
+        <div style="font-size:18px;font-weight:800;color:var(--a2)">${l.cantidad}</div>
+        <span class="badge ${l.ubicado?'ok':'gray'}">${l.ubicado?'Ubicado':'Pend.'}</span>
+      </div>
+    </div>`;
+  }).join('');
+  el('cd-ubic-btn').style.display=carro.estado==='ABIERTO'||carro.estado==='EN_USO'?'flex':'none';
+  el('carro-detail').classList.add('on');
+}
+
+// ── Override marcarUbicado: actualiza líneas del carro ──
+async function marcarUbicado(){
+  if(!carroActual||!db) return;
+  await db.from('carros_entrada').update({estado:'UBICADO'}).eq('id',carroActual.id);
+  // Marcar todas las líneas como ubicadas
+  if(carroActual.lineas?.length){
+    await db.from('carro_lineas').update({ubicado:true}).eq('carro_id',carroActual.id);
+  }
+  await db.from('movimientos').insert([{
+    tipo:'CARRO_UBICADO',wh_id:wh_codigo,
+    notas:'Carro '+carroActual.numero+' → UBICADO · '+sesion.nombre,
+    usuario:sesion.nombre
+  }]);
+  toast(carroActual.numero+' → UBICADO ✓','ok');
+  hideCarro();
+  loadCarrosRF();
+  refreshHomeKPIs();
+}
+
+// ── Override confirmarReubicacion: registra movimiento y actualiza stock ──
+async function confirmarReubicacion(){
+  if(!reubSkuActual){toast('Escanea el artículo primero','warn');return;}
+  const qty=parseInt(v('reub-qty'))||1;
+  const ori=v('reub-ori'), dest=v('reub-dest');
+  if(!ori||!dest){toast('Ingresa ubicación origen y destino','warn');return;}
+  if(ori===dest){toast('Origen y destino son iguales','warn');return;}
+  if(!db){toast('Sin conexión','warn');return;}
+  await db.from('movimientos').insert([{
+    tipo:'REUBICACION',wh_id:wh_codigo,
+    sku:reubSkuActual.sku,cantidad:qty,ubicacion:dest,
+    notas:'De '+ori+' a '+dest+' · '+sesion.nombre+(v('reub-motivo')?' · '+v('reub-motivo'):''),
+    usuario:sesion.nombre
+  }]);
+  await db.from('stock').update({
+    ubicacion:dest,updated_at:new Date().toISOString()
+  }).eq('id',reubSkuActual.id);
+  // Actualizar estado de ubicaciones
+  await db.from('ubicaciones').update({ocupada:true,estado:'busy'}).eq('codigo',dest);
+  await db.from('ubicaciones').update({ocupada:false,estado:'free'}).eq('codigo',ori);
+  toast(reubSkuActual.sku+': '+ori+' → '+dest+' ✓','ok');
+  resetReubicacion();
+}
+
+// ── Override confirmarAjuste con campo usuario ──
+async function confirmarAjuste(){
+  const stk=window._ajStkActual;
+  if(!stk){toast('Busca un artículo primero','warn');return;}
+  const tipo=v('aj-tipo'), qty=parseInt(v('aj-qty'))||0, wh=v('aj-wh');
+  const motivo=v('aj-motivo')||'Ajuste RF';
+  if(qty<=0&&tipo!=='CORRECCION'){toast('Cantidad debe ser mayor a 0','warn');return;}
+  if(!db){toast('Sin conexión','warn');return;}
+  let nuevoStock=stk.disponible||0;
+  if(tipo==='ENTRADA')                              nuevoStock+=qty;
+  else if(['SALIDA','DANADO','PERDIDA'].includes(tipo)) nuevoStock=Math.max(0,nuevoStock-qty);
+  else if(tipo==='CORRECCION')                      nuevoStock=qty;
+  await db.from('stock').update({
+    disponible:nuevoStock,updated_at:new Date().toISOString()
+  }).eq('id',stk.id);
+  const delta=nuevoStock-(stk.disponible||0);
+  await db.from('movimientos').insert([{
+    tipo:'AJUSTE_'+tipo,wh_id:wh,sku:stk.sku,
+    cantidad:delta,
+    notas:motivo+' · '+sesion.nombre+' · Anterior: '+stk.disponible+' → Nuevo: '+nuevoStock,
+    usuario:sesion.nombre
+  }]);
+  toast(stk.sku+': '+stk.disponible+' → '+nuevoStock+' ✓','ok');
+  resetAjuste();
+  refreshHomeKPIs();
+}
+
+// ── Override consultarUbicacion: usa zona_id para link con zonas ──
+async function consultarUbicacion(codigo){
+  if(!codigo||codigo.length<2) return;
+  if(!db) return;
+  const {data:ubics}=await db.from('ubicaciones').select('*').ilike('codigo','%'+codigo+'%').limit(5);
+  const wrap=el('ubic-result'); if(!wrap) return;
+  if(!ubics?.length){wrap.innerHTML='<div class="al err">No encontrada: '+codigo+'</div>';return;}
+  // Para cada ubicación buscar stock
+  const codigos=ubics.map(u=>u.codigo);
+  const {data:stocks}=await db.from('stock').select('*').in('ubicacion',codigos);
+  wrap.innerHTML=ubics.map(u=>{
+    const stk=(stocks||[]).filter(s=>s.ubicacion===u.codigo);
+    return`<div class="card" style="margin-bottom:12px">
+      <div class="card-hd">
+        <div class="card-title">📍 ${u.codigo}</div>
+        <span class="badge ${u.ocupada?'warn':'ok'}">${u.ocupada?'Ocupada':'Libre'}</span>
+      </div>
+      <div class="cb">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px;color:var(--txt4);margin-bottom:${stk.length?'10px':'0'}">
+          <div><b>WH:</b> ${u.wh_id||'—'}</div>
+          <div><b>Zona:</b> ${u.zona||'—'}</div>
+          <div><b>Tipo:</b> ${u.tipo||'Rack'}</div>
+          <div><b>Cap:</b> ${u.capacidad_kg||'—'} kg</div>
+        </div>
+        ${stk.map(s=>`
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 10px;background:rgba(255,255,255,.03);border-radius:8px;margin-bottom:6px">
+            <div>
+              <div style="font-size:13px;font-weight:700;color:var(--txt2)">${s.sku}</div>
+              <div style="font-size:11px;color:var(--txt4)">${s.descripcion||'—'}${s.lote?' · '+s.lote:''}</div>
+            </div>
+            <div style="font-size:20px;font-weight:800;color:var(--a2);font-family:monospace">${s.disponible}</div>
+          </div>`).join('')}
+        ${!stk.length?'<div style="text-align:center;color:var(--txt4);font-size:13px;padding:8px 0">Sin stock</div>':''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── PDT: soporte teclado en campos de reubicación origen/destino ──
+document.addEventListener('DOMContentLoaded',function(){
+  ['reub-ori','reub-dest'].forEach(id=>{
+    const inp=el(id);
+    if(inp) inp.addEventListener('keydown',function(e){
+      if(e.key==='Enter'){e.preventDefault();}
+    });
+  });
+  ['aj-sku'].forEach(id=>{
+    const inp=el(id);
+    if(inp) inp.addEventListener('keydown',function(e){
+      if(e.key==='Enter'){e.preventDefault();buscarSkuAjuste(inp.value);}
+    });
+  });
+});
+
+// ── Manifest PWA dinámico ──
+(function(){
+  const manifest={
+    name:'M-INTEL WMS RF',
+    short_name:'WMS RF',
+    description:'Sistema de Gestión de Almacenes - Terminal RF',
+    start_url:'.',
+    display:'standalone',
+    background_color:'#060810',
+    theme_color:'#060810',
+    orientation:'portrait',
+    icons:[{
+      src:'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" rx="20" fill="%234f8ef7"/><text y=".9em" font-size="80" x="10">M</text></svg>',
+      sizes:'any',type:'image/svg+xml'
+    }]
+  };
+  const blob=new Blob([JSON.stringify(manifest)],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const link=el('manifest-link');
+  if(link) link.href=url;
+})();
+</script>
+<script src="rf-v3.js"></script>
+</body>
+</html>
