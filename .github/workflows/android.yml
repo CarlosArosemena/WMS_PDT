@@ -33,7 +33,12 @@ jobs:
         run: npx cap sync android
       - name: Build Debug APK
         working-directory: android
-        run: ./gradlew assembleDebug --no-daemon
+        run: |
+          for i in 1 2 3 4 5; do
+            ./gradlew assembleDebug --no-daemon && break
+            echo "Intento $i falló, reintentando en 15 segundos..."
+            sleep 15
+          done
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
