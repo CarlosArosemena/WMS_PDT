@@ -1,0 +1,1 @@
+{ "appId": "com.mintel.wmsrf", "appName": "M-INTEL WMS RF", "webDir": "www", "bundledWebRuntime": false, "server": { "androidScheme": "https" }, "android": { "allowMixedContent": false } }
